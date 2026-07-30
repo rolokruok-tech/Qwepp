@@ -1,0 +1,554 @@
+-- Rayfield Hub (Fixed Error Version)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local Stats = game:GetService("Stats")
+local Camera = workspace.CurrentCamera
+local player = Players.LocalPlayer
+
+local Window = Rayfield:CreateWindow({
+   Name = "🔥 BIGJIW HUB",
+   LoadingTitle = "กำลังโหลดระบบโปร...",
+   LoadingSubtitle = "bye BIGJIW",
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = false
+})
+
+local MovementTab = Window:CreateTab("การเคลื่อนที่", 4483362458)
+local PlayerTab   = Window:CreateTab("ตัวละคร & ESP", 4483362458)
+local BoostTab    = Window:CreateTab("ลดความแลค (FPS)", 4483362458)
+local UtilityTab  = Window:CreateTab("ฟังก์ชันเสริม", 4483362458)
+
+--------------------------------------------------------------------
+-- TAB 1: การเคลื่อนที่ (ระบบบินถอยหลัง/ซ้าย/ขวา + Noclip)
+--------------------------------------------------------------------
+MovementTab:CreateButton({
+   Name = "✈️ เปิดเมนูบิน (Fly Menu)",
+   Callback = function()
+      if player.PlayerGui:FindFirstChild("FlyMenuGui") then
+         player.PlayerGui.FlyMenuGui:Destroy()
+      end
+
+      local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+      screenGui.Name = "FlyMenuGui"
+      screenGui.ResetOnSpawn = false
+
+      local frame = Instance.new("Frame", screenGui)
+      frame.Size = UDim2.new(0, 200, 0, 130)
+      frame.Position = UDim2.new(0.1, 0, 0.3, 0)
+      frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+      frame.BorderSizePixel = 0
+      frame.Active = true
+      frame.Draggable = true
+
+      local title = Instance.new("TextLabel", frame)
+      title.Size = UDim2.new(1, 0, 0, 35)
+      title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+      title.Text = " ✈️ FLY MENU"
+      title.TextColor3 = Color3.fromRGB(255, 255, 255)
+      title.TextSize = 14
+      title.Font = Enum.Font.SourceSansBold
+      title.TextXAlignment = Enum.TextXAlignment.Left
+
+      local toggleBtn = Instance.new("TextButton", frame)
+      toggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+      toggleBtn.Position = UDim2.new(0.05, 0, 0.32, 0)
+      toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+      toggleBtn.Text = "FLY: OFF"
+      toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+      toggleBtn.TextSize = 14
+      toggleBtn.Font = Enum.Font.SourceSansBold
+
+      local speedBox = Instance.new("TextBox", frame)
+      speedBox.Size = UDim2.new(0.9, 0, 0, 35)
+      speedBox.Position = UDim2.new(0.05, 0, 0.65, 0)
+      speedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+      speedBox.Text = "50"
+      speedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+      speedBox.TextSize = 14
+      speedBox.Font = Enum.Font.SourceSansBold
+
+      local flying = false
+      local flySpeed = 50
+      local bg, bv
+
+      speedBox.FocusLost:Connect(function()
+         local num = tonumber(speedBox.Text)
+         if num then flySpeed = num else speedBox.Text = tostring(flySpeed) end
+      end)
+
+      toggleBtn.MouseButton1Click:Connect(function()
+         flying = not flying
+         local char = player.Character
+         if not char then return end
+         local root = char:FindFirstChild("HumanoidRootPart")
+         local hum = char:FindFirstChildOfClass("Humanoid")
+         if not root or not hum then return end
+
+         if flying then
+            toggleBtn.Text = "FLY: ON"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+
+            bg = Instance.new("BodyGyro", root)
+            bg.P = 9e4
+            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bg.cframe = Camera.CFrame
+
+            bv = Instance.new("BodyVelocity", root)
+            bv.velocity = Vector3.new(0, 0.1, 0)
+            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+
+            hum.PlatformStand = true
+         else
+            toggleBtn.Text = "FLY: OFF"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            if bg then bg:Destroy() end
+            if bv then bv:Destroy() end
+            hum.PlatformStand = false
+         end
+      end)
+
+      RunService.RenderStepped:Connect(function()
+         if flying and bv and bg and player.Character then
+            local root = player.Character:FindFirstChild("HumanoidRootPart")
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
+            if root and hum then
+               bg.cframe = Camera.CFrame
+               local moveDir = hum.MoveDirection
+               
+               if moveDir.Magnitude > 0 then
+                  local camCF = Camera.CFrame
+                  local flatLook = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z)
+                  local flatRight = Vector3.new(camCF.RightVector.X, 0, camCF.RightVector.Z)
+                  
+                  if flatLook.Magnitude > 0 then flatLook = flatLook.Unit end
+                  if flatRight.Magnitude > 0 then flatRight = flatRight.Unit end
+                  
+                  local forwardDot = moveDir:Dot(flatLook)
+                  local rightDot = moveDir:Dot(flatRight)
+                  
+                  local moveVelocity = (camCF.LookVector * forwardDot) + (camCF.RightVector * rightDot)
+                  if moveVelocity.Magnitude > 0 then
+                     bv.velocity = moveVelocity.Unit * flySpeed * 1.5
+                  else
+                     bv.velocity = Vector3.new(0, 0.1, 0)
+                  end
+               else
+                  bv.velocity = Vector3.new(0, 0.1, 0)
+               end
+            end
+         end
+      end)
+   end,
+})
+
+MovementTab:CreateButton({
+   Name = "👻 ทะลุกำแพง (Noclip)",
+   Callback = function()
+      if player.PlayerGui:FindFirstChild("NoclipGuiCustom") then
+         player.PlayerGui.NoclipGuiCustom:Destroy()
+      end
+
+      local noclipActive = false
+      local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+      screenGui.Name = "NoclipGuiCustom"
+      
+      local btn = Instance.new("TextButton", screenGui)
+      btn.Size = UDim2.new(0, 150, 0, 45)
+      btn.Position = UDim2.new(0.05, 0, 0.45, 0)
+      btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+      btn.Text = "Noclip: OFF"
+      btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+      btn.TextSize = 14
+      btn.Font = Enum.Font.SourceSansBold
+      btn.Active = true
+      btn.Draggable = true
+
+      btn.MouseButton1Click:Connect(function()
+         noclipActive = not noclipActive
+         btn.Text = noclipActive and "Noclip: ON" or "Noclip: OFF"
+         btn.BackgroundColor3 = noclipActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+      end)
+
+      RunService.Stepped:Connect(function()
+         if noclipActive and player.Character then
+            for _, part in ipairs(player.Character:GetDescendants()) do
+               if part:IsA("BasePart") then part.CanCollide = false end
+            end
+         end
+      end)
+   end,
+})
+
+--------------------------------------------------------------------
+-- TAB 2: ตัวละคร & ESP
+--------------------------------------------------------------------
+PlayerTab:CreateSlider({
+   Name = "⚡ ความเร็วการเดิน (WalkSpeed)",
+   Range = {16, 300},
+   Increment = 1,
+   Suffix = " Speed",
+   CurrentValue = 16,
+   Callback = function(Value)
+      if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+         player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
+      end
+   end,
+})
+
+PlayerTab:CreateSlider({
+   Name = "🦘 ความสูงการกระโดด (JumpPower)",
+   Range = {50, 600},
+   Increment = 5,
+   Suffix = " Power",
+   CurrentValue = 50,
+   Callback = function(Value)
+      if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+         local hum = player.Character:FindFirstChildOfClass("Humanoid")
+         hum.UseJumpPower = true
+         hum.JumpPower = Value
+      end
+   end,
+})
+
+local infJump = false
+PlayerTab:CreateToggle({
+   Name = "🏓 กระโดดกลางอากาศไม่จำกัด (Infinite Jump)",
+   CurrentValue = false,
+   Callback = function(Value) infJump = Value end,
+})
+
+UserInputService.JumpRequest:Connect(function()
+   if infJump and player.Character then
+      local hum = player.Character:FindFirstChildOfClass("Humanoid")
+      if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+   end
+end)
+
+PlayerTab:CreateToggle({
+   Name = "🔍 ซูมจอไม่จำกัด (Infinite Zoom)",
+   CurrentValue = false,
+   Callback = function(Value)
+      if Value then
+         player.CameraMaxZoomDistance = 999999
+      else
+         player.CameraMaxZoomDistance = 128
+      end
+   end,
+})
+
+local espBoxEnabled = false
+local espNameEnabled = false
+local espHealthEnabled = false
+local espDistanceEnabled = false
+local espTracerEnabled = false
+
+PlayerTab:CreateSection("--- ตั้งค่าระบบ ESP แบบละเอียด ---")
+
+PlayerTab:CreateToggle({
+   Name = "📦 กรอบสี่เหลี่ยมสายรุ้ง (Box ESP)",
+   CurrentValue = false,
+   Callback = function(Value) espBoxEnabled = Value end,
+})
+
+PlayerTab:CreateToggle({
+   Name = "👤 ชื่อผู้เล่นสายรุ้ง (Name ESP)",
+   CurrentValue = false,
+   Callback = function(Value) espNameEnabled = Value end,
+})
+
+PlayerTab:CreateToggle({
+   Name = "❤️ หลอดเลือดผู้เล่น (Health Bar)",
+   CurrentValue = false,
+   Callback = function(Value) espHealthEnabled = Value end,
+})
+
+PlayerTab:CreateToggle({
+   Name = "📏 บอกระยะห่างเมตร (Distance ESP)",
+   CurrentValue = false,
+   Callback = function(Value) espDistanceEnabled = Value end,
+})
+
+PlayerTab:CreateToggle({
+   Name = "📐 เส้นนำทางสายรุ้ง (Tracers)",
+   CurrentValue = false,
+   Callback = function(Value) espTracerEnabled = Value end,
+})
+
+local espCache = {}
+
+local function removeDrawingESP(p)
+   if espCache[p] then
+      for _, obj in pairs(espCache[p]) do
+         pcall(function() obj:Remove() end)
+      end
+      espCache[p] = nil
+   end
+end
+
+RunService.RenderStepped:Connect(function()
+   local rainbowColor = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+
+   for _, p in ipairs(Players:GetPlayers()) do
+      if p ~= player then
+         local char = p.Character
+         local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+         local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+         if char and rootPart and hum and hum.Health > 0 and (espBoxEnabled or espNameEnabled or espHealthEnabled or espDistanceEnabled or espTracerEnabled) then
+            
+            if not espCache[p] then
+               local box = Drawing.new("Square")
+               box.Visible = false
+               box.Thickness = 1.5
+               box.Filled = false
+
+               local nameTag = Drawing.new("Text")
+               nameTag.Visible = false
+               nameTag.Size = 14
+               nameTag.Center = true
+               nameTag.Outline = true
+
+               local healthBarBg = Drawing.new("Square")
+               healthBarBg.Visible = false
+               healthBarBg.Filled = true
+               healthBarBg.Color = Color3.fromRGB(0, 0, 0)
+
+               local healthBar = Drawing.new("Square")
+               healthBar.Visible = false
+               healthBar.Filled = true
+
+               local tracer = Drawing.new("Line")
+               tracer.Visible = false
+               tracer.Thickness = 1.5
+
+               espCache[p] = {Box = box, Text = nameTag, HealthBarBg = healthBarBg, HealthBar = healthBar, Tracer = tracer}
+            end
+
+            local cache = espCache[p]
+            local box = cache.Box
+            local nameTag = cache.Text
+            local healthBarBg = cache.HealthBarBg
+            local healthBar = cache.HealthBar
+            local tracer = cache.Tracer
+
+            box.Color = rainbowColor
+            nameTag.Color = rainbowColor
+            tracer.Color = rainbowColor
+
+            local vector, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+            if onScreen then
+               local head = char:FindFirstChild("Head")
+               local topPosition = head and head.Position + Vector3.new(0, 0.6, 0) or rootPart.Position + Vector3.new(0, 2.2, 0)
+               local legPosition = rootPart.Position - Vector3.new(0, 3, 0)
+
+               local topVector = Camera:WorldToViewportPoint(topPosition)
+               local legVector = Camera:WorldToViewportPoint(legPosition)
+
+               local height = math.abs(topVector.Y - legVector.Y)
+               local width = height / 2
+
+               if espBoxEnabled then
+                  box.Size = Vector2.new(width, height)
+                  box.Position = Vector2.new(topVector.X - width / 2, topVector.Y)
+                  box.Visible = true
+               else
+                  box.Visible = false
+               end
+
+               if espNameEnabled or espDistanceEnabled then
+                  local textStr = ""
+                  if espNameEnabled then textStr = textStr .. "👤 " .. p.Name end
+                  if espDistanceEnabled then
+                     local dist = math.floor((rootPart.Position - Camera.CFrame.Position).Magnitude)
+                     textStr = textStr .. " [" .. dist .. "m]"
+                  end
+                  nameTag.Text = textStr
+                  nameTag.Position = Vector2.new(topVector.X, topVector.Y - 18)
+                  nameTag.Visible = true
+               else
+                  nameTag.Visible = false
+               end
+
+               if espHealthEnabled then
+                  local healthPercent = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+                  local barHeight = height * healthPercent
+                  
+                  healthBarBg.Size = Vector2.new(3, height + 2)
+                  healthBarBg.Position = Vector2.new(topVector.X - width / 2 - 6, topVector.Y - 1)
+                  healthBarBg.Visible = true
+
+                  healthBar.Size = Vector2.new(1, barHeight)
+                  healthBar.Position = Vector2.new(topVector.X - width / 2 - 5, topVector.Y + (height - barHeight))
+                  healthBar.Color = Color3.fromRGB(255 - (healthPercent * 255), healthPercent * 255, 0)
+                  healthBar.Visible = true
+               else
+                  healthBarBg.Visible = false
+                  healthBar.Visible = false
+               end
+
+               if espTracerEnabled then
+                  tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                  tracer.To = Vector2.new(vector.X, vector.Y)
+                  tracer.Visible = true
+               else
+                  tracer.Visible = false
+               end
+
+            else
+               box.Visible = false
+               nameTag.Visible = false
+               healthBarBg.Visible = false
+               healthBar.Visible = false
+               tracer.Visible = false
+            end
+         else
+            removeDrawingESP(p)
+         end
+      end
+   end
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+   removeDrawingESP(p)
+end)
+
+--------------------------------------------------------------------
+-- TAB 3: ลดความแลค (FPS Booster + ปรับปรุงระบบดู FPS ให้ปลอดภัย)
+--------------------------------------------------------------------
+BoostTab:CreateToggle({
+   Name = "🚀 เปิด/ปิด โหมดเร่งความลื่น (FPS Booster)",
+   CurrentValue = false,
+   Callback = function(Value)
+      if Value then
+         Lighting.GlobalShadows = false
+         for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+               v.Material = Enum.Material.SmoothPlastic
+               v.Reflectance = 0
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+               v.Transparency = 1
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+               v.Enabled = false
+            end
+         end
+      else
+         Lighting.GlobalShadows = true
+      end
+   end,
+})
+
+local fpsConnection = nil
+local fpsTextLabel = nil
+
+BoostTab:CreateToggle({
+   Name = "📊 เปิดหน้าต่างแสดง FPS & Ping",
+   CurrentValue = false,
+   Callback = function(Value)
+      if Value then
+         if player.PlayerGui:FindFirstChild("FpsPingGuiCustom") then
+            player.PlayerGui.FpsPingGuiCustom:Destroy()
+         end
+
+         local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+         screenGui.Name = "FpsPingGuiCustom"
+         screenGui.ResetOnSpawn = false
+
+         local frame = Instance.new("Frame", screenGui)
+         frame.Size = UDim2.new(0, 160, 0, 50)
+         frame.Position = UDim2.new(0.85, 0, 0.05, 0)
+         frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+         frame.BorderSizePixel = 0
+         frame.Active = true
+         frame.Draggable = true
+
+         fpsTextLabel = Instance.new("TextLabel", frame)
+         fpsTextLabel.Size = UDim2.new(1, 0, 1, 0)
+         fpsTextLabel.BackgroundTransparency = 1
+         fpsTextLabel.TextColor3 = Color3.fromRGB(0, 255, 128)
+         fpsTextLabel.TextSize = 14
+         fpsTextLabel.Font = Enum.Font.SourceSansBold
+         fpsTextLabel.Text = "FPS: ... | Ping: ..."
+
+         local lastUpdate = tick()
+         local frameCount = 0
+
+         fpsConnection = RunService.RenderStepped:Connect(function()
+            frameCount = frameCount + 1
+            local now = tick()
+            if now - lastUpdate >= 0.5 then
+               local fps = math.floor(frameCount / (now - lastUpdate))
+               local ping = 0
+               pcall(function()
+                  ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+               end)
+               if fpsTextLabel and fpsTextLabel.Parent then
+                  fpsTextLabel.Text = string.format("📊 FPS: %d | Ping: %d ms", fps, ping)
+               end
+               frameCount = 0
+               lastUpdate = now
+            end
+         end)
+      else
+         if fpsConnection then
+            fpsConnection:Disconnect()
+            fpsConnection = nil
+         end
+         if player.PlayerGui:FindFirstChild("FpsPingGuiCustom") then
+            player.PlayerGui.FpsPingGuiCustom:Destroy()
+         end
+      end
+   end,
+})
+
+--------------------------------------------------------------------
+-- TAB 4: ฟังก์ชันเสริม (รวมระบบ AFK)
+--------------------------------------------------------------------
+UtilityTab:CreateToggle({
+   Name = "💡 ไฟสว่างทั้งแมพ (Fullbright)",
+   CurrentValue = false,
+   Callback = function(Value)
+      Lighting.Brightness = Value and 2 or 1
+      Lighting.GlobalShadows = not Value
+      Lighting.Ambient = Value and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(0, 0, 0)
+   end,
+})
+
+UtilityTab:CreateSlider({
+   Name = "⏰ ปรับเวลาในเกม (ClockTime)",
+   Range = {0, 24},
+   Increment = 1,
+   Suffix = " นาฬิกา",
+   CurrentValue = 14,
+   Callback = function(Value)
+      Lighting.ClockTime = Value
+   end,
+})
+
+local afkConnection = nil
+UtilityTab:CreateToggle({
+   Name = "🛡️ เปิดระบบกันหลุด AFK (Anti-AFK)",
+   CurrentValue = false,
+   Callback = function(Value)
+      if Value then
+         local vu = game:GetService("VirtualUser")
+         afkConnection = player.Idled:Connect(function()
+            vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+         end)
+         Rayfield:Notify({ Title = "Anti-AFK", Content = "เปิดระบบกันหลุด AFK แล้ว!", Duration = 2 })
+      else
+         if afkConnection then
+            afkConnection:Disconnect()
+            afkConnection = nil
+         end
+         Rayfield:Notify({ Title = "Anti-AFK", Content = "ปิดระบบกันหลุด AFK แล้ว!", Duration = 2 })
+      end
+   end,
+})
+
+Rayfield:Notify({ Title = "BIGJIW HUB", Content = "โหลดสคริปต์สำเร็จแล้ว!", Duration = 3 })
